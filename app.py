@@ -11,19 +11,39 @@ db = InterviewDatabase()
 
 # ─── Helper Functions ──────────────────────────────────────────────────────────
 def utc_to_local(utc_dt):
-    """Convert UTC datetime to local timezone"""
     if utc_dt is None:
         return None
     if hasattr(utc_dt, 'replace'):
-        # If datetime is naive (no timezone), assume it's UTC
         if utc_dt.tzinfo is None:
             utc_dt = utc_dt.replace(tzinfo=timezone.utc)
-        # Convert to local timezone
         return utc_dt.astimezone()
     return utc_dt
 
 # ─── Page Config ───────────────────────────────────────────────────────────────
-st.set_page_config(page_title="AI Interview Simulator", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="HireReady", page_icon="🎯", layout="wide")
+
+# ─── Custom CSS ────────────────────────────────────────────────────────────────
+st.markdown("""
+    <style>
+    /* Metric label (Questions, Status, Track, Difficulty) */
+    [data-testid="stMetricLabel"] p {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+    }
+    /* Metric value (the number/text below) */
+    [data-testid="stMetricValue"] {
+        font-size: 26px !important;
+        font-weight: 500 !important;
+    }
+    /* Active mode button styling */
+    div[data-testid="stHorizontalBlock"] button {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # ─── User Authentication ───────────────────────────────────────────────────────
 if "user_id" not in st.session_state:
@@ -31,21 +51,18 @@ if "user_id" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = None
 
-# Login/Signup section
 if st.session_state.user_id is None:
-    st.title("🤖 AI-Powered Tech Interview Simulator")
+    st.markdown("# 🎯 HireReady")
     st.subheader("Welcome! Please login or create an account to continue.")
-    
-    # Create tabs for Login and Signup
+
     tab1, tab2 = st.tabs(["🔑 Login", "📝 Sign Up"])
-    
+
     with tab1:
         st.markdown("### Login to Your Account")
         with st.form("login_form"):
             login_username = st.text_input("Username", placeholder="Enter your username", key="login_user")
             login_password = st.text_input("Password", type="password", placeholder="Enter your password", key="login_pass")
             submit_login = st.form_submit_button("Login", use_container_width=True)
-            
             if submit_login:
                 if not login_username or not login_password:
                     st.error("⚠️ Please enter both username and password")
@@ -58,7 +75,7 @@ if st.session_state.user_id is None:
                         st.rerun()
                     else:
                         st.error("❌ " + message)
-    
+
     with tab2:
         st.markdown("### Create New Account")
         with st.form("signup_form"):
@@ -66,7 +83,6 @@ if st.session_state.user_id is None:
             signup_password = st.text_input("Password", type="password", placeholder="Choose a password", key="signup_pass")
             signup_password_confirm = st.text_input("Confirm Password", type="password", placeholder="Re-enter your password", key="signup_pass_confirm")
             submit_signup = st.form_submit_button("Create Account", use_container_width=True)
-            
             if submit_signup:
                 if not signup_username or not signup_password or not signup_password_confirm:
                     st.error("⚠️ Please fill in all fields")
@@ -83,18 +99,15 @@ if st.session_state.user_id is None:
                         st.rerun()
                     else:
                         st.error("❌ " + message)
-    
     st.stop()
 
-# Main app
-st.title("🤖 AI-Powered Tech Interview Simulator")
-st.caption("Practice SDE or Data Science interviews with AI-generated questions and feedback.")
-st.markdown(f"**Logged in as:** {st.session_state.username} | [Logout](#)")
-
-# Logout button
+# ─── Main App Header ───────────────────────────────────────────────────────────
+st.markdown("# 🎯 HireReady")
 col1, col2, col3 = st.columns([6, 1, 1])
+with col1:
+    st.markdown(f"**Logged in as:** {st.session_state.username}")
 with col3:
-    if st.button("🚪 Logout"):
+    if st.button("🚪 Logout", use_container_width=True):
         st.session_state.user_id = None
         st.session_state.username = None
         st.session_state.messages = []
@@ -112,29 +125,43 @@ if "question_count" not in st.session_state:
 if "current_session_id" not in st.session_state:
     st.session_state.current_session_id = None
 if "view_mode" not in st.session_state:
-    st.session_state.view_mode = "interview"  # or "history"
+    st.session_state.view_mode = "interview"
 
-# ─── Sidebar Config ────────────────────────────────────────────────────────────
+# ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("⚙️ Interview Settings")
-    
-    # View mode selector
-    view_mode = st.radio("Mode", ["📝 New Interview", "📚 History"], label_visibility="collapsed")
-    if view_mode == "📚 History":
-        st.session_state.view_mode = "history"
-    else:
-        st.session_state.view_mode = "interview"
-    
+
+    # ── Toggle Buttons ──
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("📝 New\nInterview", use_container_width=True,
+                     type="primary" if st.session_state.view_mode == "interview" else "secondary"):
+            st.session_state.view_mode = "interview"
+            st.rerun()
+    with col_b:
+        if st.button("📚 History", use_container_width=True,
+                     type="primary" if st.session_state.view_mode == "history" else "secondary"):
+            st.session_state.view_mode = "history"
+            st.rerun()
+    st.markdown("""
+        <style>
+        div[data-testid="stHorizontalBlock"] button {
+            height: 60px !important;
+            white-space: normal !important;
+            line-height: 1.3 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.divider()
-    
+
     if st.session_state.view_mode == "interview":
         track = st.selectbox("Career Track", ["Software Development Engineer (SDE)", "Data Science"])
         interview_type = st.selectbox("Interview Type", ["Technical", "Behavioral", "Mixed"])
         difficulty = st.selectbox("Difficulty", ["Entry Level", "Mid Level", "Senior Level"])
         num_questions = st.slider("Number of Questions", min_value=3, max_value=10, value=5)
-        start_btn = st.button("🚀 Start Interview", use_container_width=True)
+        start_btn = st.button("🚀 Start Interview", use_container_width=True, type="primary")
         if st.button("🔄 Reset", use_container_width=True):
-            # Mark current session as abandoned if it exists
             if st.session_state.current_session_id:
                 db.update_session_status(st.session_state.current_session_id, "abandoned")
             st.session_state.messages = []
@@ -143,16 +170,13 @@ with st.sidebar:
             st.session_state.current_session_id = None
             st.rerun()
     else:
-        # History view - show statistics
         stats = db.get_user_stats(st.session_state.user_id)
         st.metric("Total Interviews", stats.get('total_sessions', 0))
         st.metric("Completed", stats.get('completed_sessions', 0))
-        
         if stats.get('by_track'):
             st.subheader("By Track")
-            for track, count in stats['by_track'].items():
-                st.text(f"{track}: {count}")
-        
+            for t, count in stats['by_track'].items():
+                st.text(f"{t}: {count}")
         if st.button("↩️ Back to Interview", use_container_width=True):
             st.session_state.view_mode = "interview"
             st.rerun()
@@ -175,17 +199,15 @@ Interview type guidance:
 Start by greeting the candidate and asking the first question. Be professional, encouraging, and constructive."""
 
 # ─── Start Interview ───────────────────────────────────────────────────────────
-if st.session_state.view_mode == "interview" and start_btn and not st.session_state.interview_started:
+start_btn = start_btn if st.session_state.view_mode == "interview" else False
+if start_btn and not st.session_state.interview_started:
     st.session_state.interview_started = True
     st.session_state.question_count = 0
     system_prompt = build_system_prompt(track, interview_type, difficulty, num_questions)
     st.session_state.messages = [{"role": "system", "content": system_prompt}]
-    
-    # Create database session
     st.session_state.current_session_id = db.create_session(
         st.session_state.user_id, track, interview_type, difficulty, num_questions
     )
-
     with st.spinner("Starting your interview..."):
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -193,10 +215,7 @@ if st.session_state.view_mode == "interview" and start_btn and not st.session_st
         )
         ai_msg = response.choices[0].message.content
         st.session_state.messages.append({"role": "assistant", "content": ai_msg})
-        
-        # Save first AI message to database
         db.save_message(st.session_state.current_session_id, "assistant", ai_msg)
-        
         st.session_state.question_count += 1
 
 # ─── Chat Display ──────────────────────────────────────────────────────────────
@@ -207,19 +226,13 @@ if st.session_state.view_mode == "interview":
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-# ─── User Input ────────────────────────────────────────────────────────────────
-if st.session_state.view_mode == "interview":
     if st.session_state.interview_started:
         user_input = st.chat_input("Type your answer here...")
         if user_input:
             st.session_state.messages.append({"role": "user", "content": user_input})
-            
-            # Save user message to database
             db.save_message(st.session_state.current_session_id, "user", user_input)
-            
             with st.chat_message("user"):
                 st.markdown(user_input)
-
             with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
                     response = client.chat.completions.create(
@@ -228,66 +241,51 @@ if st.session_state.view_mode == "interview":
                     )
                     ai_reply = response.choices[0].message.content
                     st.session_state.messages.append({"role": "assistant", "content": ai_reply})
-                    
-                    # Save AI response to database
                     db.save_message(st.session_state.current_session_id, "assistant", ai_reply)
-                    
                     st.markdown(ai_reply)
                     st.session_state.question_count += 1
-                    
-                    # Check if interview is complete (simple heuristic)
                     if "thank you" in ai_reply.lower() and "overall" in ai_reply.lower():
                         db.update_session_status(st.session_state.current_session_id, "completed")
     else:
         st.info("👈 Configure your interview settings in the sidebar and click **Start Interview** to begin.")
 
 # ─── History View ──────────────────────────────────────────────────────────────
-else:  # view_mode == "history"
+else:
     st.header("📚 Interview History")
-    
-    # Display timezone info
     local_tz = datetime.now().astimezone().tzinfo
     st.caption(f"🌍 Times displayed in your local timezone: {local_tz}")
-    
+
     sessions = db.get_user_sessions(st.session_state.user_id, limit=20)
-    
+
     if not sessions:
         st.info("No interview history yet. Start your first interview!")
     else:
-        # Display sessions in an organized manner
         for session in sessions:
             session_id = session['session_id']
             status_icon = "✅" if session['status'] == "completed" else "⏸️" if session['status'] == "in_progress" else "❌"
-            
-            # Convert UTC to local timezone and format for display
             local_time = utc_to_local(session['started_at'])
             started_at_str = local_time.strftime('%Y-%m-%d %H:%M') if hasattr(local_time, 'strftime') else str(session['started_at'])[:16]
-            
-            with st.expander(
-                f"{status_icon} {session['track']} - {session['interview_type']} ({session['difficulty']}) - {started_at_str}"
-            ):
+
+            with st.expander(f"{status_icon} {session['track']} - {session['interview_type']} ({session['difficulty']}) - {started_at_str}"):
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric("Questions", session['num_questions'])
                 with col2:
                     st.metric("Status", session['status'])
                 with col3:
-                    st.metric("Track", session['track'].split("(")[0].strip()[:15])
+                    track_label = "SDE" if "Software" in session['track'] else "DS"
+                    st.metric("Track", track_label)
                 with col4:
                     st.metric("Difficulty", session['difficulty'].split()[0])
-                
-                # Load and display chat history
+
                 if st.button(f"View Full Chat", key=f"view_{session_id}"):
                     session_details = db.get_session_details(session_id)
-                    
                     st.divider()
                     st.subheader("Chat History")
-                    
                     for msg in session_details['messages']:
                         if msg['role'] != 'system':
                             with st.chat_message(msg['role']):
                                 st.markdown(msg['content'])
-                                # Convert timestamp to local timezone
                                 local_msg_time = utc_to_local(msg['timestamp'])
                                 time_str = local_msg_time.strftime('%Y-%m-%d %I:%M:%S %p') if hasattr(local_msg_time, 'strftime') else str(msg['timestamp'])
                                 st.caption(f"_{time_str}_")
