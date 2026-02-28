@@ -6,7 +6,9 @@ from database import InterviewDatabase
 from datetime import datetime, timezone
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+print(f"DEBUG: API Key first 10 chars: {api_key[:10] if api_key else 'NOT FOUND'}")
+client = OpenAI(api_key=api_key)
 db = InterviewDatabase()
 
 # ─── Helper Functions ──────────────────────────────────────────────────────────

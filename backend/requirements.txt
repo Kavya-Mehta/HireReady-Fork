@@ -1,6 +1,8 @@
-streamlit
+fastapi
+uvicorn
 openai
 python-dotenv
-pandas
 psycopg2-binary
+pyjwt
 PyPDF2
+python-multipart
