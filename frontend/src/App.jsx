@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Interview from "./pages/Interview";
 import History from "./pages/History";
 import Profile from "./pages/Profile";
+import Layout from "./components/Layout";
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem("token");
@@ -14,11 +15,15 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        
+        {/* Authenticated Routes wrapped in Global Layout */}
         <Route
           path="/"
           element={
             <PrivateRoute>
-              <Interview />
+              <Layout>
+                <Interview />
+              </Layout>
             </PrivateRoute>
           }
         />
@@ -26,7 +31,9 @@ export default function App() {
           path="/history"
           element={
             <PrivateRoute>
-              <History />
+              <Layout>
+                <History />
+              </Layout>
             </PrivateRoute>
           }
         />
@@ -34,7 +41,9 @@ export default function App() {
           path="/profile"
           element={
             <PrivateRoute>
-              <Profile />
+              <Layout>
+                <Profile />
+              </Layout>
             </PrivateRoute>
           }
         />
