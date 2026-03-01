@@ -18,18 +18,18 @@ export default function Layout({ children }) {
   ];
 
   return (
-    <div className="flex-1 flex text-slate-100 relative overflow-hidden bg-slate-900 z-0">
+    <div className="h-screen w-screen flex text-slate-100 overflow-hidden bg-slate-900 relative">
       {/* Global Animated Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(45deg,#0f172a,#1e1b4b,#312e81,#1e1b4b,#0f172a)] bg-[length:400%_400%] animate-gradient opacity-90 z-0 pointer-events-none"></div>
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-indigo-500 rounded-full mix-blend-screen filter blur-[128px] opacity-30 animate-pulse z-0 pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-600 rounded-full mix-blend-screen filter blur-[128px] opacity-30 animate-pulse z-0 pointer-events-none" style={{ animationDelay: '2s' }}></div>
+      <div className="fixed inset-0 bg-[linear-gradient(45deg,#0f172a,#1e1b4b,#312e81,#1e1b4b,#0f172a)] bg-[length:400%_400%] animate-gradient opacity-90 z-0 pointer-events-none"></div>
+      <div className="fixed top-[-10%] left-[-10%] w-96 h-96 bg-indigo-500 rounded-full mix-blend-screen filter blur-[128px] opacity-30 animate-pulse z-0 pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-600 rounded-full mix-blend-screen filter blur-[128px] opacity-30 animate-pulse z-0 pointer-events-none" style={{ animationDelay: '2s' }}></div>
 
       {/* Global Sidebar */}
       <div className="relative z-10 w-72 bg-white/5 backdrop-blur-xl border-r border-white/10 flex flex-col p-6 gap-6 shadow-[8px_0_32px_0_rgba(0,0,0,0.3)] shrink-0 overflow-y-auto">
         
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-4 drop-shadow-[0_0_10px_rgba(99,102,241,0.4)]">
-          <img src="/logo.png" alt="HireReady Logo" className="w-12 h-12 object-contain" />
+          <img src="/logo.png" alt="HireReady Logo" className="w-12 h-12 object-contain" style={{ background: 'transparent' }} />
           <span className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200 tracking-tight">HireReady</span>
         </div>
 
@@ -43,8 +43,8 @@ export default function Layout({ children }) {
                 onClick={() => navigate(item.path)}
                 className={`py-3 px-4 rounded-xl text-sm font-bold text-left transition-all duration-300 ${
                   isActive
-                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30 font-extrabold scale-100"
-                    : "text-indigo-200/70 hover:text-white hover:bg-white/10 scale-[0.98]"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30"
+                    : "text-indigo-200/70 hover:text-white hover:bg-white/10"
                 }`}
               >
                 {item.label}
@@ -53,9 +53,7 @@ export default function Layout({ children }) {
           })}
         </nav>
 
-        <div className="flex-1">
-            {/* Optional Sidebar specific content can be rendered here later via context or props if needed */}
-        </div>
+        <div className="flex-1" />
 
         {/* User Footer */}
         <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
@@ -71,7 +69,7 @@ export default function Layout({ children }) {
           
           <button
             onClick={handleLogout}
-            className="text-xs bg-black/20 hover:bg-red-500/20 text-red-300 hover:text-red-200 px-3 py-2 rounded-lg transition-all border border-white/5 hover:border-red-500/30 flex items-center gap-1"
+            className="text-xs bg-black/20 hover:bg-red-500/20 text-red-300 hover:text-red-200 px-3 py-2 rounded-lg transition-all border border-white/5 hover:border-red-500/30"
           >
             Logout
           </button>
