@@ -11,67 +11,83 @@ export default function Layout({ children }) {
     navigate("/login");
   };
 
-  const menuItems = [
-    { path: "/", label: "📝 Interview" },
-    { path: "/history", label: "📚 History" },
+  const navLinks = [
+    { path: "/", label: "Interview" },
+    { path: "/history", label: "History" },
   ];
 
   return (
-    <div className="h-screen w-screen flex text-slate-800 overflow-hidden bg-transparent relative">
-      {/* Global Sidebar */}
-      <div className="relative z-10 w-72 bg-white border-r border-slate-200 flex flex-col p-6 gap-6 shadow-sm shrink-0 overflow-y-auto">
-        
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <img src="/logo.png" alt="HireReady Logo" className="w-12 h-12 object-contain" style={{ background: 'transparent' }} />
-          <span className="text-2xl font-extrabold text-slate-900 tracking-tight">HireReady</span>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex flex-col gap-2">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={`py-3 px-4 rounded-xl text-sm font-bold text-left transition-all duration-300 ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100/50"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="flex-1" />
-
-        {/* User Footer */}
-        <div className="mt-auto pt-4 border-t border-slate-200 flex items-center justify-between">
-          <button
-            onClick={() => navigate("/profile")}
-            className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors group"
-          >
-            <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold shadow-sm group-hover:shadow-md transition-shadow">
-              {username ? username[0].toUpperCase() : "U"}
-            </div>
-            <span className="font-semibold">{username}</span>
-          </button>
+    <div className="min-h-screen flex flex-col bg-[#fdf8f3]">
+      {/* ─── Sticky Top Navigation ─── */}
+      <header className="sticky top-0 z-50 bg-[#fdf8f3]/95 backdrop-blur-sm border-b border-[#e8ddd3]">
+        <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-8">
           
+          {/* Logo */}
           <button
-            onClick={handleLogout}
-            className="text-xs bg-slate-50 hover:bg-red-50 text-red-500 hover:text-red-600 px-3 py-2 rounded-lg transition-all border border-slate-200 hover:border-red-200 font-medium"
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2.5 shrink-0 group"
           >
-            Logout
+            <img
+              src="/logo.png"
+              alt="HireReady"
+              className="w-8 h-8 object-contain group-hover:scale-105 transition-transform"
+            />
+            <span className="text-lg font-bold text-[#1a1007] tracking-tight font-serif-display">
+              HireReady
+            </span>
           </button>
-        </div>
-      </div>
 
-      {/* Main Page Area */}
-      <main className="relative z-10 flex-1 flex flex-col overflow-hidden">
+          {/* Center Nav Links */}
+          <div className="flex items-center gap-1">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.path;
+              return (
+                <button
+                  key={link.path}
+                  onClick={() => navigate(link.path)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    isActive
+                      ? "bg-[#1a1007] text-[#fdf8f3]"
+                      : "text-[#6b584a] hover:text-[#1a1007] hover:bg-[#f0e8e0]"
+                  }`}
+                >
+                  {link.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right: User + Logout */}
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => navigate("/profile")}
+              className="flex items-center gap-2 text-sm font-semibold text-[#6b584a] hover:text-[#1a1007] transition-colors"
+            >
+              {localStorage.getItem("profilePhoto") ? (
+                <img
+                  src={localStorage.getItem("profilePhoto")}
+                  alt={username}
+                  className="w-8 h-8 rounded-full object-cover border-2 border-[#e8ddd3] hover:border-[#1a1007] transition-all"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-[#1a1007] text-[#fdf8f3] flex items-center justify-center font-bold text-sm">
+                  {username ? username[0].toUpperCase() : "U"}
+                </div>
+              )}
+              <span className="hidden sm:inline">{username}</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-xs font-semibold text-[#c84b2f] hover:text-[#a33a20] bg-[#ffeee9] hover:bg-[#ffddd5] px-3 py-1.5 rounded-lg transition-all border border-[#f9c5b8]"
+            >
+              Logout
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      {/* ─── Page Content ─── */}
+      <main className="flex-1">
         {children}
       </main>
     </div>

@@ -18,33 +18,37 @@ export const signup = (username, password) =>
 
 // ─── Interview ─────────────────────────────────────────────────────────────────
 export const startInterview = (
-  track,
   interview_type,
   difficulty,
   num_questions,
+  resume_text,
+  job_description,
 ) =>
   API.post("/interview/start", {
-    track,
     interview_type,
     difficulty,
     num_questions,
+    resume_text,
+    job_description,
   });
 
 export const sendMessage = (
   session_id,
   messages,
-  track,
   interview_type,
   difficulty,
   num_questions,
+  resume_text,
+  job_description,
 ) =>
   API.post("/interview/chat", {
     session_id,
     messages,
-    track,
     interview_type,
     difficulty,
     num_questions,
+    resume_text,
+    job_description,
   });
 
 export const updateSessionStatus = (session_id, status) =>

@@ -40,7 +40,6 @@ class InterviewDatabase:
             CREATE TABLE IF NOT EXISTS interview_sessions (
                 session_id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
-                track TEXT NOT NULL,
                 interview_type TEXT NOT NULL,
                 difficulty TEXT NOT NULL,
                 num_questions INTEGER NOT NULL,
@@ -212,17 +211,17 @@ class InterviewDatabase:
 
     # ─── Interview Session Management ──────────────────────────────────────
 
-    def create_session(self, user_id: int, track: str, interview_type: str,
+    def create_session(self, user_id: int, interview_type: str,
                        difficulty: str, num_questions: int) -> int:
         """Create a new interview session and return session_id."""
         conn = self.get_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
             INSERT INTO interview_sessions
-            (user_id, track, interview_type, difficulty, num_questions)
-            VALUES (%s, %s, %s, %s, %s)
+            (user_id, interview_type, difficulty, num_questions)
+            VALUES (%s, %s, %s, %s)
             RETURNING session_id
-        """, (user_id, track, interview_type, difficulty, num_questions))
+        """, (user_id, interview_type, difficulty, num_questions))
         session_id = cursor.fetchone()['session_id']
         conn.commit()
         cursor.close()
@@ -247,7 +246,7 @@ class InterviewDatabase:
         conn = self.get_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
-            SELECT session_id, track, interview_type, difficulty,
+            SELECT session_id, interview_type, difficulty,
                    num_questions, started_at, completed_at, status
             FROM interview_sessions
             WHERE user_id = %s
@@ -293,7 +292,7 @@ class InterviewDatabase:
         conn = self.get_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
-            SELECT s.session_id, s.track, s.interview_type, s.difficulty,
+            SELECT s.session_id, s.interview_type, s.difficulty,
                    s.num_questions, s.started_at, s.completed_at, s.status,
                    u.username
             FROM interview_sessions s
@@ -330,12 +329,6 @@ class InterviewDatabase:
             WHERE user_id = %s
         """, (user_id,))
         stats = dict(cursor.fetchone())
-        cursor.execute("""
-            SELECT track, COUNT(*) as count
-            FROM interview_sessions
-            WHERE user_id = %s GROUP BY track
-        """, (user_id,))
-        stats['by_track'] = {row['track']: row['count'] for row in cursor.fetchall()}
         cursor.execute("""
             SELECT difficulty, COUNT(*) as count
             FROM interview_sessions

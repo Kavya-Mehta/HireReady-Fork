@@ -35,99 +35,121 @@ export default function History() {
   };
 
   const formatDate = (iso) => iso ? new Date(iso).toLocaleString() : "";
-  const trackLabel = (track) => track?.includes("Software") ? "SDE" : "DS";
-  const statusColor = (s) => s === "completed" ? "text-emerald-600" : s === "in_progress" ? "text-amber-600" : "text-red-500";
-  const statusBg = (s) => s === "completed" ? "bg-emerald-50 border-emerald-200" : s === "in_progress" ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";
+  const statusStyle = (s) => ({
+    completed: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    in_progress: "bg-amber-50 border-amber-200 text-amber-700",
+  }[s] || "bg-red-50 border-red-200 text-red-600");
   const statusIcon = (s) => s === "completed" ? "✅" : s === "in_progress" ? "⏸️" : "❌";
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50">
-      {/* Top Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-4 shrink-0">
-        <h1 className="text-base font-semibold text-slate-900">📚 Interview History</h1>
-        <p className="text-xs text-slate-500 mt-0.5">Review your past sessions and track your progress</p>
-      </div>
+    <div className="bg-[#fdf8f3] min-h-screen">
+      <div className="max-w-5xl mx-auto px-6 py-16">
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-3">
-          {loading && (
-            <div className="flex items-center justify-center h-40">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+        {/* Page Header */}
+        <div className="mb-12">
+          <p className="text-[#c2a882] text-xs font-bold uppercase tracking-widest mb-3">Your Progress</p>
+          <h1 className="text-5xl lg:text-6xl text-[#1a1007] leading-tight mb-4" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            Interview<br /><em className="not-italic text-[#c84b2f]">History.</em>
+          </h1>
+          <p className="text-[#8a7060] text-base">Review your past sessions and see how far you've come.</p>
+        </div>
+
+        {/* Stats Row */}
+        {!loading && (stats.total_sessions > 0) && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            {[
+              { label: "Total Sessions", value: stats.total_sessions || 0, accent: "" },
+              { label: "Completed", value: stats.completed_sessions || 0, accent: "text-emerald-600" },
+            ].map(({ label, value, accent }) => (
+              <div key={label} className="bg-white border border-[#e8ddd3] rounded-2xl p-5 shadow-sm">
+                <div className={`text-3xl font-black ${accent || "text-[#1a1007]"}`}>{value}</div>
+                <div className="text-xs text-[#8a7060] font-semibold uppercase tracking-wider mt-1">{label}</div>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+        )}
 
-          {!loading && sessions.length === 0 && (
-            <div className="flex items-center justify-center h-full animate-fade-in">
-              <div className="bg-white border border-slate-200 p-10 rounded-2xl text-center max-w-sm shadow-sm">
-                <div className="text-5xl mb-4">📭</div>
-                <h2 className="text-lg font-bold text-slate-900 mb-1">No interviews yet!</h2>
-                <p className="text-slate-500 text-sm">Head over to the Interview tab to start your first session.</p>
-              </div>
+        {/* Loading */}
+        {loading && (
+          <div className="flex items-center justify-center py-24">
+            <div className="flex gap-1.5">
+              {[0, 150, 300].map((d) => <span key={d} className="w-2.5 h-2.5 bg-[#c2a882] rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />)}
             </div>
-          )}
+          </div>
+        )}
 
-          {sessions.map((session) => (
-            <div key={session.session_id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:border-slate-300 transition-colors animate-slide-up">
+        {/* Empty state */}
+        {!loading && sessions.length === 0 && (
+          <div className="bg-white border border-[#e8ddd3] rounded-2xl p-16 text-center shadow-sm">
+            <div className="text-6xl mb-5">📭</div>
+            <h2 className="text-2xl font-bold text-[#1a1007] mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>No interviews yet.</h2>
+            <p className="text-[#8a7060]">Head over to the Interview tab to start your first session.</p>
+          </div>
+        )}
+
+        {/* Session list */}
+        <div className="space-y-3">
+          {sessions.map((session, i) => (
+            <div key={session.session_id}
+              className="bg-white border border-[#e8ddd3] rounded-2xl overflow-hidden shadow-sm hover:border-[#d4c5b5] transition-all animate-fade-up"
+              style={{ animationDelay: `${i * 0.04}s` }}
+            >
               <button
                 onClick={() => handleExpand(session.session_id)}
-                className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-all text-left group"
+                className="w-full flex items-center justify-between px-6 py-5 hover:bg-[#fdf8f3] transition-all text-left group"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <span className="text-xl">{statusIcon(session.status)}</span>
                   <div>
-                    <div className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors">
-                      {trackLabel(session.track)} — {session.interview_type}
+                    <div className="text-sm font-bold text-[#1a1007] group-hover:text-[#c84b2f] transition-colors">
+                      {session.interview_type}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                      <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 font-medium">{session.difficulty}</span>
-                      <span>•</span>
-                      {formatDate(session.started_at)}
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-[#8a7060]">
+                      <span className="bg-[#f0e8e0] text-[#6b584a] px-2 py-0.5 rounded-full border border-[#e0d5c8] font-medium">{session.difficulty}</span>
+                      <span>·</span>
+                      <span>{formatDate(session.started_at)}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-lg border ${statusBg(session.status)} ${statusColor(session.status)}`}>
+                  <span className={`text-xs font-bold px-3 py-1 rounded-lg border ${statusStyle(session.status)}`}>
                     {session.status.replace("_", " ").toUpperCase()}
                   </span>
-                  <span className="text-slate-400 text-sm">{expandedId === session.session_id ? "▲" : "▼"}</span>
+                  <span className="text-[#c2b5a6] text-sm">{expandedId === session.session_id ? "▲" : "▼"}</span>
                 </div>
               </button>
 
               {expandedId === session.session_id && (
-                <div className="border-t border-slate-100 px-5 py-5 bg-slate-50">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                <div className="border-t border-[#f0e8e0] px-6 py-6 bg-[#fdf8f3]">
+                  {/* Mini stats */}
+                  <div className="grid grid-cols-4 gap-3 mb-6">
                     {[
-                      { label: "Questions", value: session.num_questions },
-                      { label: "Status", value: session.status.split("_").join(" "), colored: true, s: session.status },
-                      { label: "Track", value: trackLabel(session.track) },
-                      { label: "Difficulty", value: session.difficulty },
-                    ].map(({ label, value, colored, s }) => (
-                      <div key={label} className="bg-white rounded-xl p-3 text-center border border-slate-200 shadow-sm">
-                        <div className={`text-base font-black ${colored ? statusColor(s) : "text-slate-900"}`}>{value}</div>
-                        <div className="text-xs text-slate-400 mt-0.5 uppercase tracking-wider font-medium">{label}</div>
+                      { label: "Questions", val: session.num_questions },
+                      { label: "Difficulty", val: session.difficulty.split(" ")[0] },
+                      { label: "Status", val: session.status.replace("_", " ") },
+                    ].map(({ label, val }) => (
+                      <div key={label} className="bg-white rounded-xl p-3 text-center border border-[#e8ddd3]">
+                        <div className="text-sm font-black text-[#1a1007] capitalize">{val}</div>
+                        <div className="text-[10px] text-[#8a7060] uppercase tracking-wider mt-0.5">{label}</div>
                       </div>
                     ))}
                   </div>
 
+                  {/* Chat history */}
                   {sessionDetails[session.session_id] && (
-                    <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                      <div className="text-xs font-bold text-slate-400 uppercase tracking-widest pb-1 border-b border-slate-200">Chat History</div>
+                    <div className="space-y-3">
+                      <div className="text-xs font-bold text-[#c2a882] uppercase tracking-widest pb-2 border-b border-[#e8ddd3]">Chat History</div>
                       {sessionDetails[session.session_id].messages
                         .filter((m) => m.role !== "system")
-                        .map((msg, i) => (
-                          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                        .map((msg, j) => (
+                          <div key={j} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                             <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap shadow-sm ${
                               msg.role === "user"
-                                ? "bg-slate-900 text-white rounded-br-sm"
-                                : "bg-white text-slate-800 rounded-bl-sm border border-slate-200"
+                                ? "bg-[#1a1007] text-[#fdf8f3] rounded-tr-sm"
+                                : "bg-white text-[#1a1007] border border-[#e8ddd3] rounded-tl-sm"
                             }`}>
                               {msg.content}
-                              <div className="text-[10px] opacity-50 mt-1.5 font-medium">{formatDate(msg.timestamp)}</div>
+                              <div className="opacity-40 mt-1.5 font-medium text-[10px]">{formatDate(msg.timestamp)}</div>
                             </div>
                           </div>
                         ))}
@@ -137,46 +159,6 @@ export default function History() {
               )}
             </div>
           ))}
-        </div>
-
-        {/* Stats Sidebar */}
-        <div className="w-full md:w-72 bg-white border-t md:border-t-0 md:border-l border-slate-200 p-6 flex flex-col gap-5 shrink-0">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Performance Stats</h2>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-200">
-              <div className="text-2xl font-black text-slate-900">{stats.total_sessions || 0}</div>
-              <div className="text-xs font-bold uppercase tracking-wide text-slate-400 mt-0.5">Total</div>
-            </div>
-            <div className="bg-emerald-50 rounded-xl p-4 text-center border border-emerald-200">
-              <div className="text-2xl font-black text-emerald-600">{stats.completed_sessions || 0}</div>
-              <div className="text-xs font-bold uppercase tracking-wide text-emerald-500 mt-0.5">Completed</div>
-            </div>
-          </div>
-
-          {stats.by_track && Object.keys(stats.by_track).length > 0 && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-2">By Track</div>
-              {Object.entries(stats.by_track).map(([t, count]) => (
-                <div key={t} className="flex justify-between items-center text-sm font-medium pt-1">
-                  <span className="text-slate-700">{trackLabel(t)}</span>
-                  <span className="bg-white text-slate-800 px-2.5 py-0.5 rounded-lg border border-slate-200 font-bold text-xs">{count}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {stats.by_difficulty && Object.keys(stats.by_difficulty).length > 0 && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-2">By Difficulty</div>
-              {Object.entries(stats.by_difficulty).map(([d, count]) => (
-                <div key={d} className="flex justify-between items-center text-sm font-medium pt-1">
-                  <span className="text-slate-700">{d.split(" ")[0]}</span>
-                  <span className="bg-white text-slate-800 px-2.5 py-0.5 rounded-lg border border-slate-200 font-bold text-xs">{count}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

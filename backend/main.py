@@ -33,18 +33,20 @@ class AuthRequest(BaseModel):
     password: str
 
 class StartSessionRequest(BaseModel):
-    track: str
     interview_type: str
     difficulty: str
     num_questions: int
+    resume_text: str = ""
+    job_description: str = ""
 
 class ChatRequest(BaseModel):
     session_id: int
     messages: list
-    track: str
     interview_type: str
     difficulty: str
     num_questions: int
+    resume_text: str = ""
+    job_description: str = ""
 
 class UpdateStatusRequest(BaseModel):
     status: str
@@ -95,13 +97,13 @@ def login(req: AuthRequest):
 @app.post("/interview/start")
 def start_interview(req: StartSessionRequest, user=Depends(verify_token)):
     system_prompt = build_system_prompt(
-        req.track, req.interview_type, req.difficulty, req.num_questions
+        req.interview_type, req.difficulty, req.num_questions, req.resume_text, req.job_description
     )
     messages = [{"role": "system", "content": system_prompt}]
     response = client.chat.completions.create(model="gpt-4o", messages=messages)
     ai_msg = response.choices[0].message.content
     session_id = db.create_session(
-        user["user_id"], req.track, req.interview_type, req.difficulty, req.num_questions
+        user["user_id"], req.interview_type, req.difficulty, req.num_questions
     )
     db.save_message(session_id, "assistant", ai_msg)
     return {
@@ -191,9 +193,8 @@ def delete_account(user=Depends(verify_token)):
     return {"message": message}
 
 # ─── System Prompt ─────────────────────────────────────────────────────────────
-def build_system_prompt(track, interview_type, difficulty, num_questions):
-    return f"""You are an expert technical interviewer conducting a {difficulty} {interview_type} interview 
-for a {track} role. Your job is to:
+def build_system_prompt(interview_type, difficulty, num_questions, resume_text="", job_description=""):
+    base_prompt = f"""You are an expert technical interviewer conducting a {difficulty} {interview_type} interview. Your job is to:
 1. Ask one question at a time.
 2. Wait for the candidate's response before proceeding.
 3. After each answer, provide brief, constructive feedback (2-3 sentences).
@@ -206,3 +207,13 @@ Interview type guidance:
 - Mixed: Alternate between technical and behavioral questions.
 
 Start by greeting the candidate and asking the first question. Be professional, encouraging, and constructive."""
+
+    if resume_text or job_description:
+        base_prompt += "\n\nAdditional Context:\n"
+        if resume_text:
+            base_prompt += f"--- Candidate's Resume ---\n{resume_text}\n\n"
+        if job_description:
+            base_prompt += f"--- Job Description ---\n{job_description}\n\n"
+        base_prompt += "Ensure your questions are tailored to the candidate's experience in their resume and the specific requirements mentioned in the job description."
+
+    return base_prompt
