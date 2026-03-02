@@ -59,6 +59,16 @@ class InterviewDatabase:
                 FOREIGN KEY (session_id) REFERENCES interview_sessions(session_id)
             )
         """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS resumes (
+                resume_id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                filename TEXT NOT NULL,
+                content TEXT NOT NULL,
+                uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() AT TIME ZONE 'UTC'),
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
+            )
+        """)
         conn.commit()
         cursor.close()
         conn.close()
@@ -199,6 +209,7 @@ class InterviewDatabase:
                 )
             """, (user_id,))
             cursor.execute("DELETE FROM interview_sessions WHERE user_id = %s", (user_id,))
+            cursor.execute("DELETE FROM resumes WHERE user_id = %s", (user_id,))
             cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
             conn.commit()
             return True, "Account deleted successfully"
@@ -338,3 +349,71 @@ class InterviewDatabase:
         cursor.close()
         conn.close()
         return stats
+
+    # ─── Resume Management ─────────────────────────────────────────────────
+
+    def upload_resume(self, user_id: int, filename: str, content: str) -> tuple:
+        """Upload a new resume for a user. Returns (resume_id, success, message)."""
+        conn = self.get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        try:
+            cursor.execute("""
+                INSERT INTO resumes (user_id, filename, content)
+                VALUES (%s, %s, %s)
+                RETURNING resume_id
+            """, (user_id, filename, content))
+            resume_id = cursor.fetchone()['resume_id']
+            conn.commit()
+            return resume_id, True, "Resume uploaded successfully"
+        except Exception as e:
+            conn.rollback()
+            return None, False, str(e)
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_user_resumes(self, user_id: int) -> List[Dict]:
+        """Get all resumes for a user without content (metadata only)."""
+        conn = self.get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT resume_id, filename, uploaded_at
+            FROM resumes
+            WHERE user_id = %s
+            ORDER BY uploaded_at DESC
+        """, (user_id,))
+        resumes = [dict(row) for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        return resumes
+
+    def get_resume(self, user_id: int, resume_id: int) -> Optional[Dict]:
+        """Get full resume details (including content)."""
+        conn = self.get_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT resume_id, filename, content, uploaded_at
+            FROM resumes
+            WHERE user_id = %s AND resume_id = %s
+        """, (user_id, resume_id))
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return dict(result) if result else None
+
+    def delete_resume(self, user_id: int, resume_id: int) -> tuple:
+        """Delete a resume for a user. Returns (success, message)."""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM resumes WHERE user_id = %s AND resume_id = %s", (user_id, resume_id))
+            if cursor.rowcount == 0:
+                return False, "Resume not found or not authorized to delete"
+            conn.commit()
+            return True, "Resume deleted successfully"
+        except Exception as e:
+            conn.rollback()
+            return False, str(e)
+        finally:
+            cursor.close()
+            conn.close()

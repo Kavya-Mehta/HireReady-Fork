@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { startInterview, sendMessage, updateSessionStatus } from "../api";
+import { startInterview, sendMessage, updateSessionStatus, getResumes, uploadResume, getResume } from "../api";
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 import "pdfjs-dist/build/pdf.worker.mjs";
 
@@ -13,6 +13,8 @@ export default function Interview() {
   const [numQuestions, setNumQuestions] = useState(5);
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
+  const [userResumes, setUserResumes] = useState([]);
+  const [selectedResumeId, setSelectedResumeId] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -23,6 +25,18 @@ export default function Interview() {
   const [completed, setCompleted] = useState(false);
   const bottomRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchResumes = async () => {
+      try {
+        const res = await getResumes();
+        setUserResumes(res.data.resumes || []);
+      } catch (err) {
+        console.error("Failed to load resumes", err);
+      }
+    };
+    fetchResumes();
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,6 +70,13 @@ export default function Interview() {
           text += content.items.map((item) => item.str).join(" ") + "\n";
         }
         setResumeText(text);
+        await uploadResume(file.name, text);
+        const res = await getResumes();
+        setUserResumes(res.data.resumes || []);
+        // Automatically select the newly uploaded one if possible
+        if (res.data.resumes && res.data.resumes.length > 0) {
+          setSelectedResumeId(res.data.resumes[0].resume_id);
+        }
       } catch (error) {
         console.error("Error reading PDF:", error);
         alert("Failed to read PDF. Please try another file or a plain text document.");
@@ -63,19 +84,61 @@ export default function Interview() {
     } else {
       const text = await file.text();
       setResumeText(text);
+      await uploadResume(file.name, text);
+      const res = await getResumes();
+      setUserResumes(res.data.resumes || []);
+      if (res.data.resumes && res.data.resumes.length > 0) {
+        setSelectedResumeId(res.data.resumes[0].resume_id);
+      }
+    }
+  };
+
+  const handleResumeSelect = (e) => {
+    const val = e.target.value;
+    setSelectedResumeId(val);
+    if (val === "new") {
+      setResumeText("");
+      setResumeFile(null);
+    } else if (val) {
+      const selected = userResumes.find(r => String(r.resume_id) === val);
+      if (selected) {
+        setResumeFile(selected.filename);
+        // The GET /profile/resumes endpoint doesn't return content to save bandwidth, 
+        // but for simplicity we rely on the backend fetching it, or we already get it.
+        // Wait, the backend doesn't fetch it, we send resumeText to /start.
+        // We must fetch the actual content if we only got metadata. 
+        // *Since our get_user_resumes currently does NOT return content, this approach forces us to fetch the full resume or update get_user_resumes to return content. Let me update the startInterview backend endpoint.*
+        // Actually, let's keep it simple: the prompt builder expects resumeText. 
+      }
     }
   };
 
   const handleStart = async () => {
-    if (!resumeText) {
+    let finalResumeText = resumeText;
+
+    if (selectedResumeId && selectedResumeId !== "new" && !finalResumeText) {
+      setLoading(true);
+      try {
+        const res = await getResume(selectedResumeId);
+        finalResumeText = res.data.content;
+        setResumeText(finalResumeText);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load the selected resume content.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (!finalResumeText && selectedResumeId === "new") {
       alert("Please upload your resume to start the interview.");
       return;
     }
     setLoading(true);
     try {
-      const res = await startInterview(interviewType, difficulty, numQuestions, resumeText, jobDescription);
+      const res = await startInterview(interviewType, difficulty, numQuestions, finalResumeText, jobDescription);
       setSessionId(res.data.session_id);
-      setSessionConfig({ interviewType, difficulty, numQuestions, resumeText, jobDescription });
+      setSessionConfig({ interviewType, difficulty, numQuestions, resumeText: finalResumeText, jobDescription });
       setMessages(res.data.messages.filter((m) => m.role !== "system"));
       setStarted(true);
     } catch (err) {
@@ -139,16 +202,32 @@ export default function Interview() {
               
               <div>
                 <label className="block text-xs font-bold text-[#8a7060] uppercase tracking-widest mb-2 flex justify-between">
-                  <span>Resume Upload <span className="text-[#c84b2f]">*</span></span>
-                  {resumeFile && <span className="text-[#1a1007] truncate max-w-[150px]">{resumeFile}</span>}
+                  <span>Select Resume <span className="text-[#c84b2f]">*</span></span>
                 </label>
-                <div className="relative">
-                  <input type="file" accept=".pdf,.txt" onChange={handleResumeUpload} className="hidden" id="resume-upload" />
-                  <label htmlFor="resume-upload" className="w-full flex items-center justify-center gap-2 bg-[#fdf8f3] border border-dashed border-[#d4c5b5] hover:border-[#1a1007] hover:bg-[#f0e8e0] rounded-xl px-4 py-4 text-sm text-[#1a1007] cursor-pointer transition-all font-medium">
-                    <svg className="w-5 h-5 text-[#8a7060]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                    {resumeFile ? 'Change Resume' : 'Upload Resume (PDF/TXT)'}
-                  </label>
-                </div>
+                <select 
+                  value={selectedResumeId} 
+                  onChange={handleResumeSelect} 
+                  className={selectClass + " mb-4"}
+                >
+                  <option value="">-- Choose a Saved Resume --</option>
+                  {userResumes.map(r => (
+                    <option key={r.resume_id} value={r.resume_id}>
+                      {r.filename} ({new Date(r.uploaded_at).toLocaleDateString()})
+                    </option>
+                  ))}
+                  <option value="new">+ Upload New Resume</option>
+                </select>
+
+                {selectedResumeId === "new" && (
+                  <div className="relative">
+                    <input type="file" accept=".pdf,.txt" onChange={handleResumeUpload} className="hidden" id="resume-upload" />
+                    <label htmlFor="resume-upload" className="w-full flex items-center justify-center gap-2 bg-[#fdf8f3] border border-dashed border-[#d4c5b5] hover:border-[#1a1007] hover:bg-[#f0e8e0] rounded-xl px-4 py-4 text-sm text-[#1a1007] cursor-pointer transition-all font-medium">
+                      <svg className="w-5 h-5 text-[#8a7060]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                      {resumeFile ? 'Change Resume' : 'Upload New Resume (PDF/TXT)'}
+                    </label>
+                    {resumeFile && <p className="text-xs text-[#8a7060] text-center mt-2">Selected: {resumeFile}</p>}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -187,10 +266,10 @@ export default function Interview() {
 
               <button
                 onClick={handleStart}
-                disabled={loading || !resumeText}
+                disabled={loading || (!resumeText && selectedResumeId === "new") || !selectedResumeId}
                 className="w-full bg-[#1a1007] hover:bg-[#2e1e10] disabled:opacity-50 disabled:bg-[#e0d5c8] disabled:text-[#8a7060] text-[#fdf8f3] font-bold py-4 rounded-xl transition-all text-sm mt-2 flex items-center justify-center gap-2"
               >
-                {loading ? "Starting…" : (!resumeText ? "Upload Resume to Start" : "Start Interview")}
+                {loading ? "Starting…" : (!selectedResumeId ? "Select a Resume to Start" : "Start Interview")}
               </button>
             </div>
 

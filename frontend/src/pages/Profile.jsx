@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getProfile, updateUsername, updatePassword, deleteAccount } from "../api";
+import { getProfile, updateUsername, updatePassword, deleteAccount, getResumes, deleteResume } from "../api";
 
 /* ──────────────────────────────────────────
    Inline Canvas Cropper Modal
@@ -194,6 +194,7 @@ export default function Profile() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [resumes, setResumes] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [saving, setSaving] = useState(false);
@@ -204,8 +205,12 @@ export default function Profile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await getProfile();
-        setProfile(res.data);
+        const [resProfile, resResumes] = await Promise.all([
+          getProfile(),
+          getResumes()
+        ]);
+        setProfile(resProfile.data);
+        setResumes(resResumes.data.resumes || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -283,6 +288,16 @@ export default function Profile() {
     } catch (err) {
       showMsg("error", err.response?.data?.detail || "Failed to delete account");
       setSaving(false);
+    }
+  };
+
+  const handleDeleteResume = async (resumeId) => {
+    try {
+      await deleteResume(resumeId);
+      setResumes((prev) => prev.filter(r => r.resume_id !== resumeId));
+      showMsg("success", "Resume deleted");
+    } catch (err) {
+      showMsg("error", "Failed to delete resume");
     }
   };
 
@@ -441,6 +456,52 @@ export default function Profile() {
             )}
           </div>
         ))}
+
+        {/* My Resumes */}
+        <div className="bg-white border border-[#e8ddd3] rounded-2xl overflow-hidden shadow-sm mb-4">
+          <button
+            onClick={() => setActiveSection(activeSection === "resumes" ? null : "resumes")}
+            className="w-full flex justify-between items-center px-6 py-5 hover:bg-[#fdf8f3] transition-colors group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-9 h-9 rounded-xl bg-[#f0e8e0] flex items-center justify-center text-base border border-[#e0d5c8]">📄</div>
+              <div>
+                <div className="text-sm font-bold text-[#1a1007] text-left group-hover:text-[#c84b2f] transition-colors">My Resumes</div>
+                <div className="text-xs text-[#8a7060] mt-0.5">Manage your saved resumes</div>
+              </div>
+            </div>
+            <span className="text-[#c2b5a6] font-black text-lg">{activeSection === "resumes" ? "−" : "+"}</span>
+          </button>
+          {activeSection === "resumes" && (
+            <div className="px-6 pb-6 pt-2 border-t border-[#f0e8e0] animate-fade-in">
+              {resumes.length === 0 ? (
+                <div className="text-center py-6 border-2 border-dashed border-[#e8ddd3] rounded-xl text-sm text-[#8a7060]">
+                  No resumes saved yet. You can upload one when starting a new interview.
+                </div>
+              ) : (
+                <div className="space-y-3 mt-3">
+                  {resumes.map(r => (
+                    <div key={r.resume_id} className="flex items-center justify-between p-4 bg-[#fdf8f3] border border-[#e8ddd3] rounded-xl group/res">
+                      <div className="min-w-0 pr-4">
+                        <div className="text-sm font-bold text-[#1a1007] truncate">{r.filename}</div>
+                        <div className="text-[10px] text-[#8a7060] uppercase tracking-wider mt-1 font-semibold">
+                          {new Date(r.uploaded_at).toLocaleString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteResume(r.resume_id)}
+                        className="w-8 h-8 flex items-center justify-center text-[#8a7060] hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors border border-transparent hover:border-red-100 flex-shrink-0"
+                        title="Delete Resume"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Danger Zone */}
         <div className="bg-white border border-red-100 rounded-2xl overflow-hidden shadow-sm mt-8">

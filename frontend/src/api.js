@@ -72,3 +72,14 @@ export const getSessionDetails = (session_id) =>
   API.get(`/history/session/${session_id}`);
 
 export const getStats = () => API.get("/history/stats");
+
+// ─── Resumes ───────────────────────────────────────────────────────────────────
+export const getResume = (resume_id) => API.get(`/profile/resumes/${resume_id}`);
+
+export const getResumes = () => API.get("/profile/resumes");
+
+export const uploadResume = (filename, content) =>
+  API.post("/profile/resumes", { filename, content });
+
+export const deleteResume = (resume_id) =>
+  API.delete(`/profile/resumes/${resume_id}`);

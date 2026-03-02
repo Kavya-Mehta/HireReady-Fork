@@ -58,6 +58,10 @@ class UpdatePasswordRequest(BaseModel):
     current_password: str
     new_password: str
 
+class ResumeUploadRequest(BaseModel):
+    filename: str
+    content: str
+
 # ─── JWT Helpers ───────────────────────────────────────────────────────────────
 def create_token(user_id: int, username: str) -> str:
     payload = {
@@ -190,6 +194,39 @@ def delete_account(user=Depends(verify_token)):
     success, message = db.delete_user(user["user_id"])
     if not success:
         raise HTTPException(status_code=500, detail=message)
+    return {"message": message}
+
+# ─── Resume Routes ─────────────────────────────────────────────────────────────
+
+@app.get("/profile/resumes")
+def get_resumes(user=Depends(verify_token)):
+    resumes = db.get_user_resumes(user["user_id"])
+    for r in resumes:
+        if hasattr(r['uploaded_at'], 'isoformat'):
+            r['uploaded_at'] = r['uploaded_at'].isoformat()
+    return {"resumes": resumes}
+
+@app.post("/profile/resumes")
+def upload_resume(req: ResumeUploadRequest, user=Depends(verify_token)):
+    resume_id, success, message = db.upload_resume(user["user_id"], req.filename, req.content)
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    return {"message": message, "resume_id": resume_id}
+
+@app.get("/profile/resumes/{resume_id}")
+def get_resume(resume_id: int, user=Depends(verify_token)):
+    resume = db.get_resume(user["user_id"], resume_id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    if hasattr(resume['uploaded_at'], 'isoformat'):
+        resume['uploaded_at'] = resume['uploaded_at'].isoformat()
+    return resume
+
+@app.delete("/profile/resumes/{resume_id}")
+def delete_resume(resume_id: int, user=Depends(verify_token)):
+    success, message = db.delete_resume(user["user_id"], resume_id)
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
     return {"message": message}
 
 # ─── System Prompt ─────────────────────────────────────────────────────────────
